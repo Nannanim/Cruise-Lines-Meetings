@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cruise Baltic Timer</title>
+
+  <style>
+    :root {
+      --cb-darkblue: rgb(0,41,67);
+      --cb-blue: rgb(64,81,255);
+      --cb-yellow: rgb(215,253,0);
+      --cb-bluegrey: rgb(92,121,139);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--cb-darkblue);
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Layout */
+    .wrapper {
+      display: flex;
+      flex-direction: row;
+      gap: 60px;
+      margin-top: 40px;
+    }
+
+    /* Minimalistiske timerkort */
+    .timer {
+      background: rgba(255,255,255,0.05);
+      border-radius: 30px;
+      padding: 40px 50px;
+      width: 420px;
+      height: 480px;
+
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+
+      transition: 0.3s ease;
+    }
+
+    .timer.active {
+      border: 2px solid var(--cb-yellow);
+      box-shadow: 0 0 25px rgba(215,253,0,0.4);
+    }
+
+    h2 {
+      margin: 0;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+
+    /* Den gule cirkel */
+    .status-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--cb-yellow);
+      opacity: 0.2;
+      transition: 0.3s ease;
+    }
+
+    .timer.active .status-circle {
+      opacity: 1;
+    }
+
+    /* Display */
+    .countdown {
+      font-size: 7rem;
+      font-weight: 200;
+      letter-spacing: -2px;
+    }
+
+    /* Inputs */
+    .inputs {
+      display: flex;
+      gap: 10px;
+      font-size: 1.2rem;
+    }
+
+    input {
+      width: 80px;
+      padding: 8px;
+      font-size: 1.2rem;
+      border-radius: 10px;
+      text-align: center;
+      border: none;
+    }
+
+    button {
+      background: var(--cb-blue);
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      font-size: 1.2rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--cb-bluegrey);
+    }
+
+    /* Start cyklus knap */
+    .start-cycle {
+      margin-top: 20px;
+      background: var(--cb-yellow);
+      color: black;
+      font-weight: bold;
+      padding: 16px 40px;
+      border-radius: 20px;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .start-cycle:hover {
+      background: rgb(200,240,0);
+    }
+
+    /* Footer */
+    footer {
+      margin-bottom: 25px;
+      font-size: 1.4rem;
+      opacity: 0.6;
+      letter-spacing: 1px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Lyde -->
+  <audio id="alarmSound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" preload="auto"></audio>
+  <audio id="cycleSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" preload="auto"></audio>
+
+  <div class="wrapper">
+
+    <!-- Timer 1 -->
+    <div class="timer" id="timer1">
+      <h2>Cruise Lines Meetings</h2>
+
+      <div class="status-circle"></div>
+
+      <div class="inputs">
+        <label>Min: <input type="number" id="min1" value="1"></label>
+        <label>Sek: <input type="number" id="sec1" value="0"></label>
+      </div>
+
+      <div class="countdown" id="display1">00:00</div>
+
+      <button onclick="startTimer(1)">Start</button>
+      <button onclick="resetAll()">Nulstil</button>
+    </div>
+
+    <!-- Timer 2 -->
+    <div class="timer" id="timer2">
+      <h2>Switch Seats!</h2>
+
+      <div class="status-circle"></div>
+
+      <div class="inputs">
+        <label>Min: <input type="number" id="min2" value="1"></label>
+        <label>Sek: <input type="number" id="sec2" value="0"></label>
+      </div>
+
+      <div class="countdown" id="display2">00:00</div>
+
+      <button onclick="startTimer(2)">Start</button>
+      <button onclick="resetAll()">Nulstil</button>
+    </div>
+
+  </div>
+
+  <button class="start-cycle" onclick="startCycle()">Start cyklus</button>
+
+  <footer>Cruise Baltic</footer>
+
+<script>
+  let timers = {};
+  let isRunning = false;
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function startCycle() {
+    resetAll();
+    startTimer(1);
+  }
+
+  function startTimer(id) {
+    if (isRunning) return;
+    isRunning = true;
+
+    clearInterval(timers[1]);
+    clearInterval(timers[2]);
+
+    document.getElementById("timer1").classList.remove("active");
+    document.getElementById("timer2").classList.remove("active");
+    document.getElementById(`timer${id}`).classList.add("active");
+
+    const min = parseInt(document.getElementById(`min${id}`).value) || 0;
+    const sec = parseInt(document.getElementById(`sec${id}`).value) || 0;
+    let total = min * 60 + sec;
+
+    const display = document.getElementById(`display${id}`);
+    display.style.color = "white";
+
+    timers[id] = setInterval(() => {
+
+      display.textContent = formatTime(total);
+
+      if (total <= 0) {
+        clearInterval(timers[id]);
+        isRunning = false;
+        document.getElementById("alarmSound").play();
+        display.textContent = "00:00";
+        display.style.color = varYellow;
+
+        const nextId = id === 1 ? 2 : 1;
+
+        if (nextId === 1) {
+          setTimeout(() => {
+            document.getElementById("cycleSound").play();
+          }, 500);
+        }
+
+        setTimeout(() => startTimer(nextId), 1000);
+      }
+
+      total--;
+    }, 1000);
+  }
+
+  function resetAll() {
+    clearInterval(timers[1]);
+    clearInterval(timers[2]);
+    document.getElementById("display1").textContent = "00:00";
+    document.getElementById("display2").textContent = "00:00";
+    document.getElementById("timer1").classList.remove("active");
+    document.getElementById("timer2").classList.remove("active");
+    isRunning = false;
+  }
+</script>
+
+</body>
+</html>
